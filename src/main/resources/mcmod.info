@@ -1,14 +1,14 @@
 [
   {
-    "modid": "examplemod",
-    "name": "ExampleMod",
-    "description": "Example mixined scala mod!",
+    "modid": "proton",
+    "name": "Proton",
+    "description": "Permission mod for Forge",
     "version": "${version}",
     "mcversion": "${mcversion}",
     "url": "",
     "updateUrl": "",
     "authorList": [
-      "Author"
+      "Tapio"
     ],
     "credits": "",
     "logoFile": "",
