@@ -41,10 +41,6 @@ minecraft {
     runDir = "idea"
 }
 
-dependencies {
-    embed('mysql:mysql-connector-java:8.0.30')
-}
-
 processResources {
     inputs.property "version", project.version
     inputs.property "mcversion", project.minecraft.version
