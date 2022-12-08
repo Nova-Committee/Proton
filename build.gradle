@@ -38,7 +38,24 @@ tasks.withType(JavaCompile) {
 
 minecraft {
     version = "1.7.10-10.13.4.1614-1.7.10"
-    runDir = "idea"
+    runDir = "run"
+}
+
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    embed('com.github.Nova-Committee:ServersideJsonL10n:Scala-1.2.0') {
+        exclude module: 'scala-library'
+        exclude module: 'scala-reflect'
+        exclude module: 'log4j-api'
+        exclude module: 'log4j-core'
+        exclude module: 'commons-io'
+        exclude module: 'commons-lang3'
+        exclude module: 'gson'
+        exclude module: 'guava'
+    }
 }
 
 processResources {
