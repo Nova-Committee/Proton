@@ -113,7 +113,16 @@ class ProtonEEP extends IExtendedEntityProperties {
 
   def removePerm(perm: IPermNode): Boolean = permNodes.remove(perm)
 
-  def addToGroup(group: IGroup): Boolean = groups.add(group)
+  def addToGroup(group: IGroup): Boolean = {
+    group.getPerms.foreach(p => permNodes.add(p))
+    groups.add(group)
+  }
 
-  def removeFromGroup(group: IGroup): Boolean = groups.remove(group)
+  def removeFromGroup(group: IGroup): Boolean = {
+    if (!groups.remove(group)) return false
+    val permsToRemove = group.getPerms.toBuffer
+    for (other <- groups) permsToRemove.--=(other.intersect(group))
+    permNodes.--=(permsToRemove)
+    true
+  }
 }

@@ -41,7 +41,7 @@ class CommandProton extends CommandBase {
                 sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.create.${if (ProtonSavedData.get.createGroup(args(2))) "success" else "failure"}"))
               case "remove" =>
                 sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.remove.${if (ProtonSavedData.get.removeGroup(args(2))) "success" else "failure"}"))
-              case y if ProtonSavedData.get.getGroup(y).isDefined => {
+              case y if ProtonSavedData.get.getGroup(y).isDefined =>
                 args(2) match {
                   case "listperms" => ProtonSavedData.get.getGroup(y).foreach(g => {
                     sender.addChatMessage(new ChatComponentText(g.getName + ":"))
@@ -49,38 +49,38 @@ class CommandProton extends CommandBase {
                   })
                   case _ => sender.addChatMessage(new ChatComponentText(getCommandUsage(sender)))
                 }
-              }
               case _ => sender.addChatMessage(new ChatComponentText(getCommandUsage(sender)))
             }
-          case "player" => {
+          case "player" =>
             PlayerUtils.getPlayer(sender, args(1)).foreach(player => {
               args(2) match {
-                case "listgroups" => {
+                case "listgroups" =>
                   sender.addChatMessage(new ChatComponentText(player.getCommandSenderName + ":"))
                   sender.addChatMessage(new ChatComponentText(StringUtils.convertIteratorToString(player.getGroups.toIterator, (g: IGroup, _) => g.getName)))
                   return
-                }
-                case "listperms" => {
-                  var raw = player.getPerms.toList
-                  for (group <- player.getGroups) raw = (raw :: group.getPerms.toList).asInstanceOf[List[IPermNode]]
+                case "listperms" =>
+                  var raw = player.getPerms.toSet
+                  for (group <- player.getGroups) raw = raw.++(group.getPerms)
                   sender.addChatMessage(new ChatComponentText(player.getCommandSenderName + ":"))
                   sender.addChatMessage(new ChatComponentText(StringUtils.convertIteratorToString(raw.toIterator, (p: IPermNode, _) => p.getName)))
                   return
-                }
                 case _ => sender.addChatMessage(new ChatComponentText(getCommandUsage(sender)))
                   return
               }
             })
             sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.player.notFound", args(1)))
-          }
           case _ => sender.addChatMessage(new ChatComponentText(getCommandUsage(sender)))
         }
-      case 4 => {
+      case 4 =>
         args(0) match {
-          case "group" => {
+          case "group" =>
             ProtonSavedData.get.getGroup(args(1)).foreach(group => {
               args(2) match {
-                case "inherit" => {
+                case "inherit" =>
+                  if (args(1).equals(args(3))) {
+                    sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.inherit.self"))
+                    return
+                  }
                   ProtonSavedData.get.getGroup(args(3)).foreach(target => {
                     group.inherit(target)
                     sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.inherited", group.getName, target.getName))
@@ -88,61 +88,50 @@ class CommandProton extends CommandBase {
                   })
                   sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.notFound", args(3)))
                   return
-                }
-                case "create" => {
+                case "create" =>
                   val manager = MinecraftServer.getServer.getCommandManager
                   val i = manager.executeCommand(sender, s"/proton group create ${args(3)}")
                   if (i > 0) manager.executeCommand(sender, s"/proton group ${args(3)} inherit ${args(1)}")
                   return
-                }
-                case "padd" => {
+                case "padd" =>
                   val added = group.addPerm(args(3))
                   sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.addPerm.${if (added) "success" else "failure"}"))
                   return
-                }
-                case "pdel" => {
+                case "pdel" =>
                   val removed = group.removePerm(args(3))
                   sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.delPerm.${if (removed) "success" else "failure"}"))
                   return
-                }
                 case _ => sender.addChatMessage(new ChatComponentText(getCommandUsage(sender)))
                   return
               }
             })
             sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.notFound", args(1)))
-          }
-          case "player" => {
+          case "player" =>
             PlayerUtils.getPlayer(sender, args(1)).foreach(player => {
               args(2) match {
-                case "padd" => {
+                case "padd" =>
                   val added = player.addPerm(args(3))
                   sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.player.addPerm.${if (added) "success" else "failure"}"))
                   return
-                }
-                case "pdel" => {
+                case "pdel" =>
                   val removed = player.removePerm(args(3))
                   sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.player.delPerm.${if (removed) "success" else "failure"}"))
                   return
-                }
-                case "gadd" => {
+                case "gadd" =>
                   val added = player.addToGroup(args(3))
                   sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.player.addToGroup.${if (added) "success" else "failure"}"))
                   return
-                }
-                case "gdel" => {
+                case "gdel" =>
                   val removed = player.removeFromGroup(args(3))
                   sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.player.removeFromGroup.${if (removed) "success" else "failure"}"))
                   return
-                }
                 case _ => sender.addChatMessage(new ChatComponentText(getCommandUsage(sender)))
                   return
               }
             })
             sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.player.notFound", args(1)))
-          }
           case _ => sender.addChatMessage(new ChatComponentText(getCommandUsage(sender)))
         }
-      }
       case _ => sender.addChatMessage(new ChatComponentText(getCommandUsage(sender)))
     }
   }
@@ -156,35 +145,31 @@ class CommandProton extends CommandBase {
         case _ => Nil
       }): _*)
       case 3 => CommandBase.getListOfStringsMatchingLastWord(args, (args(0) match {
-        case "group" => {
+        case "group" =>
           args(1) match {
-            case g if (ProtonSavedData.get.getGroup(g).isDefined) => Array("inherit", "create", "padd", "pdel", "listperms")
+            case g if ProtonSavedData.get.getGroup(g).isDefined => Array("inherit", "create", "padd", "pdel", "listperms")
             case _ => Array("")
           }
-        }
-        case "player" => {
+        case "player" =>
           args(1) match {
-            case p if (MinecraftServer.getServer.getAllUsernames.contains(p)) => Array("padd", "pdel", "gadd", "gdel", "listperms", "listgroups")
+            case p if MinecraftServer.getServer.getAllUsernames.contains(p) => Array("padd", "pdel", "gadd", "gdel", "listperms", "listgroups")
             case _ => Array("")
           }
-        }
         case _ => Array("")
       }): _*)
       case 4 => CommandBase.getListOfStringsMatchingLastWord(args, (args(0) match {
-        case "group" => {
+        case "group" =>
           args(2) match {
             case _@("inherit" | "create") => ProtonSavedData.get.getGroups.map(g => g.getName).filter(s => !s.equals(args(1)))
             case _@("padd" | "pdel") => ProtonSavedData.get.getPermNodes.map(p => p.getName)
             case _ => Array("")
           }
-        }
-        case "player" => {
+        case "player" =>
           args(2) match {
             case _@("gadd" | "gdel") => ProtonSavedData.get.getGroups.map(g => g.getName).filter(s => !s.equals(args(1)))
             case _@("padd" | "pdel") => ProtonSavedData.get.getPermNodes.map(p => p.getName)
             case _ => Array("")
           }
-        }
       }): _*)
       case _ => ImmutableList.of()
     }

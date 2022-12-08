@@ -48,6 +48,12 @@ trait IGroup {
 
   def inherit(that: IGroup): Unit
 
+  def intersect(that: IGroup): Array[IPermNode] = {
+    val common = new mutable.HashSet[IPermNode]()
+    getPerms.foreach(p => if (that.getPerms.contains(p)) common.add(p))
+    common.toArray
+  }
+
   def deserialize(tag: NBTTagCompound): IGroup = {
     val permList = tag.getTagList("perms", 8)
     for (i <- 0 until permList.tagCount()) {
