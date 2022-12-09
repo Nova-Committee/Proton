@@ -104,7 +104,6 @@ class ProtonSavedData extends WorldSavedData("Proton") {
       for (group <- groups) {
         val serialized = group.serialize
         serialized.setString("name", group.getName)
-        // pass
         if (!group.isImmutable || ProtonImmutableGroupInitializationEvent.getImmutableGroups.contains(group))
           groupsTag.appendTag(serialized)
       }

@@ -24,7 +24,10 @@ case class Group(name: String) extends IGroup {
 
   override def removeChild(child: String): Boolean = children.remove(child)
 
-  override def addPerm(perm: IPermNode): Boolean = perms.add(perm)
+  override def addPerm(perm: IPermNode): Boolean = {
+    children.foreach(c => ProtonSavedData.get.getGroup(c).foreach(g => g.addPerm(perm)))
+    perms.add(perm)
+  }
 
   override def removePerm(perm: IPermNode): Boolean = {
     children.foreach(c => ProtonSavedData.get.getGroup(c).foreach(g => g.removePerm(perm)))
