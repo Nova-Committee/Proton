@@ -40,6 +40,10 @@ class CommandProton extends CommandBase {
               case "create" =>
                 sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.create.${if (ProtonSavedData.get.createGroup(args(2))) "success" else "failure"}"))
               case "remove" =>
+                if (ProtonSavedData.get.getGroups.exists(g => g.isImmutable && args(2).equals(g.getName))) {
+                  sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.immutable", args(2)))
+                  return
+                }
                 sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.remove.${if (ProtonSavedData.get.removeGroup(args(2))) "success" else "failure"}"))
               case y if ProtonSavedData.get.getGroup(y).isDefined =>
                 args(2) match {
@@ -88,16 +92,31 @@ class CommandProton extends CommandBase {
                   })
                   sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.notFound", args(3)))
                   return
+                case "dissociate" => {
+                  if (args(1).equals(args(3))) {
+                    sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.dissociate.self"))
+                    return
+                  }
+                  ProtonSavedData.get.getGroup(args(3)).foreach(target => group.dissociate(target))
+                }
                 case "create" =>
                   val manager = MinecraftServer.getServer.getCommandManager
-                  val i = manager.executeCommand(sender, s"/proton group create ${args(3)}")
-                  if (i > 0) manager.executeCommand(sender, s"/proton group ${args(3)} inherit ${args(1)}")
+                  if (manager.executeCommand(sender, s"/proton group create ${args(3)}") > 0)
+                    manager.executeCommand(sender, s"/proton group ${args(3)} inherit ${args(1)}")
                   return
                 case "padd" =>
+                  if (group.isImmutable) {
+                    sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.immutable", group.getName))
+                    return
+                  }
                   val added = group.addPerm(args(3))
                   sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.addPerm.${if (added) "success" else "failure"}"))
                   return
                 case "pdel" =>
+                  if (group.isImmutable) {
+                    sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.immutable", group.getName))
+                    return
+                  }
                   val removed = group.removePerm(args(3))
                   sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.delPerm.${if (removed) "success" else "failure"}"))
                   return
@@ -147,7 +166,9 @@ class CommandProton extends CommandBase {
       case 3 => CommandBase.getListOfStringsMatchingLastWord(args, (args(0) match {
         case "group" =>
           args(1) match {
-            case g if ProtonSavedData.get.getGroup(g).isDefined => Array("inherit", "create", "padd", "pdel", "listperms")
+            case g if ProtonSavedData.get.getGroup(g).isDefined => Array("inherit", "create", "listperms").toBuffer
+              .++=(if (ProtonSavedData.get.getGroup(g).get.isImmutable) Array("") else Array("padd", "pdel")).toArray
+            case "remove" => ProtonSavedData.get.getGroups.filter(g => !g.isImmutable).map(g => g.getName)
             case _ => Array("")
           }
         case "player" =>

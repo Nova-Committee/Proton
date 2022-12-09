@@ -3,7 +3,7 @@ package committee.nova.proton
 import committee.nova.proton.config.ServerConfig
 import committee.nova.proton.core.command.init.CommandInit
 import committee.nova.proton.core.event.handler.{FMLEventHandler, ForgeEventHandler}
-import committee.nova.proton.core.event.impl.{ProtonGroupInitializationEvent, ProtonPermNodeInitializationEvent, ProtonPlayerInitializationEvent}
+import committee.nova.proton.core.event.impl.{ProtonImmutableGroupInitializationEvent, ProtonPermNodeInitializationEvent, ProtonPlayerInitializationEvent}
 import committee.nova.proton.util.L10nUtils
 import cpw.mods.fml.common.Mod
 import cpw.mods.fml.common.Mod.EventHandler
@@ -42,9 +42,11 @@ object Proton {
 
   @EventHandler def postInit(e: FMLPostInitializationEvent): Unit = {
     MinecraftForge.EVENT_BUS.post(new ProtonPermNodeInitializationEvent)
-    MinecraftForge.EVENT_BUS.post(new ProtonGroupInitializationEvent)
+    MinecraftForge.EVENT_BUS.post(new ProtonImmutableGroupInitializationEvent)
     MinecraftForge.EVENT_BUS.post(new ProtonPlayerInitializationEvent)
   }
 
-  @EventHandler def serverStarting(e: FMLServerStartingEvent): Unit = CommandInit.init(e)
+  @EventHandler def serverStarting(e: FMLServerStartingEvent): Unit = {
+    CommandInit.init(e)
+  }
 }

@@ -8,12 +8,21 @@ import scala.collection.mutable
 case class Group(name: String) extends IGroup {
   private val perms = new mutable.HashSet[IPermNode]()
   private val children = new mutable.HashSet[String]()
+  private var immutable = false
 
   override def getName: String = name
 
   override def getPerms: Array[IPermNode] = perms.toArray
 
-  override def getChildren: mutable.HashSet[String] = children
+  override def isImmutable: Boolean = immutable
+
+  override def setImmutable(immutable: Boolean): Unit = this.immutable = immutable
+
+  override def getChildren: Array[String] = children.toArray
+
+  override def addChild(child: String): Boolean = children.add(child)
+
+  override def removeChild(child: String): Boolean = children.remove(child)
 
   override def addPerm(perm: IPermNode): Boolean = perms.add(perm)
 
@@ -22,5 +31,10 @@ case class Group(name: String) extends IGroup {
     perms.remove(perm)
   }
 
-  override def inherit(that: IGroup): Unit = perms.++=(that.getPerms)
+  override def inherit(that: IGroup): Unit = {
+    perms.++=(that.getPerms)
+    that.addChild(this.getName)
+  }
+
+  override def dissociate(that: IGroup): Boolean = that.removeChild(this.getName)
 }

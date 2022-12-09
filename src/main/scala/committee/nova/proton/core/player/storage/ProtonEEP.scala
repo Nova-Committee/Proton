@@ -2,12 +2,11 @@ package committee.nova.proton.core.player.storage
 
 import committee.nova.proton.Proton
 import committee.nova.proton.api.perm.{IGroup, IPermNode}
-import committee.nova.proton.core.event.impl.ProtonPlayerInitializationEvent
 import committee.nova.proton.core.perm.PermNode
 import committee.nova.proton.core.server.storage.ProtonSavedData
 import committee.nova.proton.util.L10nUtils
 import net.minecraft.entity.Entity
-import net.minecraft.entity.player.{EntityPlayer, EntityPlayerMP}
+import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.nbt.{NBTTagCompound, NBTTagList, NBTTagString}
 import net.minecraft.world.World
 import net.minecraftforge.common.IExtendedEntityProperties
@@ -46,14 +45,6 @@ class ProtonEEP extends IExtendedEntityProperties {
     groups.clear()
     permNodes.clear()
     initialized = tag.getBoolean("protonInitialized")
-    if (!initialized) {
-      player match {
-        case mp: EntityPlayerMP =>
-          ProtonPlayerInitializationEvent.getAllFuncs.foreach(f => f.apply(mp))
-          initialized = true
-        case _ =>
-      }
-    }
     if (tag.hasKey("protonGroups")) {
       val groupsTag = tag.getTagList("protonGroups", 8)
       for (i <- 0 until groupsTag.tagCount()) {
@@ -113,16 +104,7 @@ class ProtonEEP extends IExtendedEntityProperties {
 
   def removePerm(perm: IPermNode): Boolean = permNodes.remove(perm)
 
-  def addToGroup(group: IGroup): Boolean = {
-    group.getPerms.foreach(p => permNodes.add(p))
-    groups.add(group)
-  }
+  def addToGroup(group: IGroup): Boolean = groups.add(group)
 
-  def removeFromGroup(group: IGroup): Boolean = {
-    if (!groups.remove(group)) return false
-    val permsToRemove = group.getPerms.toBuffer
-    for (other <- groups) permsToRemove.--=(other.intersect(group))
-    permNodes.--=(permsToRemove)
-    true
-  }
+  def removeFromGroup(group: IGroup): Boolean = groups.remove(group)
 }

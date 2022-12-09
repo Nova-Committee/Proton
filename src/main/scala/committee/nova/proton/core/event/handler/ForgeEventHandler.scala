@@ -1,10 +1,9 @@
 package committee.nova.proton.core.event.handler
 
 import committee.nova.proton.Proton
-import committee.nova.proton.core.event.handler.FMLEventHandler.{testNode1, testNode2}
-import committee.nova.proton.core.event.handler.ForgeEventHandler.isInDevEnv
-import committee.nova.proton.core.event.impl.{ProtonGroupInitializationEvent, ProtonPermNodeInitializationEvent, ProtonPlayerInitializationEvent}
-import committee.nova.proton.core.perm.Group
+import committee.nova.proton.core.event.handler.ForgeEventHandler._
+import committee.nova.proton.core.event.impl.{ProtonImmutableGroupInitializationEvent, ProtonPermNodeInitializationEvent, ProtonPlayerInitializationEvent}
+import committee.nova.proton.core.perm.{Group, PermNode}
 import committee.nova.proton.core.player.storage.ProtonEEP
 import committee.nova.proton.implicits.PlayerImplicit
 import cpw.mods.fml.common.eventhandler.SubscribeEvent
@@ -16,6 +15,11 @@ import net.minecraftforge.event.entity.EntityEvent.EntityConstructing
 import net.minecraftforge.event.entity.player.PlayerEvent
 
 object ForgeEventHandler {
+  val testNode0: PermNode = PermNode("proton.test.0")
+  val testNode1: PermNode = PermNode("proton.test.1")
+  val testNode2: PermNode = PermNode("proton.test.2")
+  val testNode3: PermNode = PermNode("proton.test.3")
+
   def init(): Unit = MinecraftForge.EVENT_BUS.register(new ForgeEventHandler)
 
   def isInDevEnv: Boolean = Launch.blackboard.get("fml.deobfuscatedEnvironment").asInstanceOf[Boolean]
@@ -41,23 +45,24 @@ class ForgeEventHandler {
   def onPermNodeInit(e: ProtonPermNodeInitializationEvent): Unit = {
     if (!isInDevEnv) return
     Proton.LOGGER.info("DevEnv Perm Init")
-    e.addNode(testNode1, testNode2)
+    e.addNode(testNode0, testNode1, testNode2, testNode3)
   }
 
   @SubscribeEvent
-  def onGroupInit(e: ProtonGroupInitializationEvent): Unit = {
+  def onGroupInit(e: ProtonImmutableGroupInitializationEvent): Unit = {
     if (!isInDevEnv) return
     Proton.LOGGER.info("DevEnv Group Init")
-    val defaultGroup = Group("ProtonDefault")
-    defaultGroup.addPerm(testNode1)
-    defaultGroup.addPerm(testNode2)
-    e.addGroup(defaultGroup)
+    val protonGroup = Group("ProtonDefault")
+    protonGroup.addPerm(testNode2)
+    protonGroup.addPerm(testNode3)
+    e.addGroup(protonGroup)
   }
 
   @SubscribeEvent
   def onPlayerInit(e: ProtonPlayerInitializationEvent): Unit = {
     if (!isInDevEnv) return
     Proton.LOGGER.info("DevEnv Player Init")
+    e.addFunc(p => Array(testNode0, testNode1).foreach(n => p.addPerm(n)))
     e.addFunc(p => p.addToGroup("ProtonDefault"))
   }
 }

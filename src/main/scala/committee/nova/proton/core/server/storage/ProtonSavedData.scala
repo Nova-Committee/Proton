@@ -1,12 +1,11 @@
 package committee.nova.proton.core.server.storage
 
 import committee.nova.proton.api.perm.{IGroup, IPermNode}
-import committee.nova.proton.config.ServerConfig
 import committee.nova.proton.core.command.impl.CommandProton
-import committee.nova.proton.core.event.impl.{ProtonGroupInitializationEvent, ProtonPermNodeInitializationEvent}
+import committee.nova.proton.core.event.impl.{ProtonImmutableGroupInitializationEvent, ProtonPermNodeInitializationEvent}
 import committee.nova.proton.core.perm.{Group, PermNode}
+import committee.nova.proton.util.DataUtils
 import net.minecraft.nbt.{NBTTagCompound, NBTTagList, NBTTagString}
-import net.minecraft.server.MinecraftServer
 import net.minecraft.world.WorldSavedData
 
 import java.util.UUID
@@ -16,7 +15,7 @@ object ProtonSavedData {
   private var instance: ProtonSavedData = _
 
   def get: ProtonSavedData = {
-    val world = MinecraftServer.getServer.worldServers(0)
+    val world = DataUtils.getOverworld
     if (instance != null) return instance
     val data = world.mapStorage.loadData(classOf[ProtonSavedData], "ProtonData")
     if (data != null) {
@@ -37,11 +36,7 @@ class ProtonSavedData extends WorldSavedData("Proton") {
   groups.clear()
   permNodes.clear()
   permNodes.++=(ProtonPermNodeInitializationEvent.getPermNodes)
-  if (!ServerConfig.wasInitialized) {
-    groups.++=(ProtonGroupInitializationEvent.getAllGroups)
-    ServerConfig.setInitialized(true)
-    ServerConfig.sync()
-  }
+  groups.++=(ProtonImmutableGroupInitializationEvent.getImmutableGroups)
 
   def getGroups: Array[IGroup] = groups.toArray
 
@@ -87,7 +82,9 @@ class ProtonSavedData extends WorldSavedData("Proton") {
       val groupsTag = tag.getTagList("protonGroups", 10)
       for (i <- 0 until groupsTag.tagCount()) {
         val group = groupsTag.getCompoundTagAt(i)
-        groups.add(Group(group.getString("name")).deserialize(group))
+        val groupName = group.getString("name")
+        if (!group.getBoolean("immutable") || ProtonImmutableGroupInitializationEvent.getImmutableGroups.exists(g => groupName.equals(g.getName)))
+          groups.add(Group(groupName).deserialize(group))
       }
     }
     if (tag.hasKey("protonNodes")) {
@@ -103,7 +100,7 @@ class ProtonSavedData extends WorldSavedData("Proton") {
       for (group <- groups) {
         val serialized = group.serialize
         serialized.setString("name", group.getName)
-        groupsTag.appendTag(serialized)
+        if (!group.isImmutable || ProtonImmutableGroupInitializationEvent.getImmutableGroups.contains(group)) groupsTag.appendTag(serialized)
       }
       tag.setTag("protonGroups", groupsTag)
     }

@@ -12,6 +12,10 @@ trait IGroup {
 
   def getPerms: Array[IPermNode]
 
+  def isImmutable: Boolean
+
+  def setImmutable(immutable: Boolean): Unit
+
   def addPerm(perm: IPermNode): Boolean
 
   def addPerm(perm: String): Boolean = {
@@ -40,7 +44,11 @@ trait IGroup {
     }
   }
 
-  def getChildren: mutable.HashSet[String]
+  def getChildren: Array[String]
+
+  def addChild(child: String): Boolean
+
+  def removeChild(child: String): Boolean
 
   def hasPerm(node: IPermNode): Boolean = getPerms.contains(node) || getPerms.exists(p => PermUtils.isCovered(p, node))
 
@@ -48,9 +56,13 @@ trait IGroup {
 
   def inherit(that: IGroup): Unit
 
-  def intersect(that: IGroup): Array[IPermNode] = {
+  def dissociate(that: IGroup): Boolean
+
+  def intersect(that: IGroup): Array[IPermNode] = intersect(that.getPerms)
+
+  def intersect(that: Array[IPermNode]): Array[IPermNode] = {
     val common = new mutable.HashSet[IPermNode]()
-    getPerms.foreach(p => if (that.getPerms.contains(p)) common.add(p))
+    getPerms.foreach(p => if (that.contains(p)) common.add(p))
     common.toArray
   }
 
@@ -62,7 +74,8 @@ trait IGroup {
       addPerm(perm)
     }
     val childrenList = tag.getTagList("children", 8)
-    for (i <- 0 until childrenList.tagCount()) getChildren.add(childrenList.getStringTagAt(i))
+    for (i <- 0 until childrenList.tagCount()) addChild(childrenList.getStringTagAt(i))
+    setImmutable(tag.getBoolean("immutable"))
     this
   }
 
@@ -74,6 +87,7 @@ trait IGroup {
     val childrenList = new NBTTagList
     for (child <- getChildren) childrenList.appendTag(new NBTTagString(child))
     tag.setTag("children", childrenList)
+    tag.setBoolean("immutable", isImmutable)
     tag
   }
 
