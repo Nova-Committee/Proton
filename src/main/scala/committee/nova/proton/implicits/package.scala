@@ -47,5 +47,14 @@ package object implicits {
         case None => false
       }
     }
+
+    def dissociate(group: IGroup): Boolean = getProton.dissociate(group)
+
+    def dissociate(group: String): Boolean = {
+      getProton.getGroups.find(g => group.equals(g.getName)) match {
+        case Some(g) => getProton.dissociate(g)
+        case None => false
+      }
+    }
   }
 }

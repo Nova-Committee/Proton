@@ -97,7 +97,12 @@ class CommandProton extends CommandBase {
                     sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.dissociate.self"))
                     return
                   }
-                  ProtonSavedData.get.getGroup(args(3)).foreach(target => group.dissociate(target))
+                  ProtonSavedData.get.getGroup(args(3)).foreach(target => {
+                    sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.dissociate.${if (group.dissociate(target)) "success" else "failure"}"))
+                    return
+                  })
+                  sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.notFound", args(3)))
+                  return
                 }
                 case "create" =>
                   val manager = MinecraftServer.getServer.getCommandManager
@@ -144,6 +149,10 @@ class CommandProton extends CommandBase {
                   val removed = player.removeFromGroup(args(3))
                   sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.player.removeFromGroup.${if (removed) "success" else "failure"}"))
                   return
+                case "dissociate" =>
+                  val dissociated = player.dissociate(args(3))
+                  sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.player.dissociate.${if (dissociated) "success" else "failure"}"))
+                  return
                 case _ => sender.addChatMessage(new ChatComponentText(getCommandUsage(sender)))
                   return
               }
@@ -166,31 +175,43 @@ class CommandProton extends CommandBase {
       case 3 => CommandBase.getListOfStringsMatchingLastWord(args, (args(0) match {
         case "group" =>
           args(1) match {
-            case g if ProtonSavedData.get.getGroup(g).isDefined => Array("inherit", "create", "listperms").toBuffer
-              .++=(if (ProtonSavedData.get.getGroup(g).get.isImmutable) Array("") else Array("padd", "pdel")).toArray
+            case g if ProtonSavedData.get.getGroup(g).isDefined => Array("dissociate", "create", "listperms").toBuffer
+              .++=(if (ProtonSavedData.get.getGroup(g).get.isImmutable) Array("") else Array("inherit", "padd", "pdel")).toArray
             case "remove" => ProtonSavedData.get.getGroups.filter(g => !g.isImmutable).map(g => g.getName)
             case _ => Array("")
           }
         case "player" =>
           args(1) match {
-            case p if MinecraftServer.getServer.getAllUsernames.contains(p) => Array("padd", "pdel", "gadd", "gdel", "listperms", "listgroups")
+            case p if MinecraftServer.getServer.getAllUsernames.contains(p) => Array("padd", "pdel", "gadd", "gdel", "dissociate", "listperms", "listgroups")
             case _ => Array("")
           }
         case _ => Array("")
       }): _*)
       case 4 => CommandBase.getListOfStringsMatchingLastWord(args, (args(0) match {
         case "group" =>
-          args(2) match {
-            case _@("inherit" | "create") => ProtonSavedData.get.getGroups.map(g => g.getName).filter(s => !s.equals(args(1)))
-            case _@("padd" | "pdel") => ProtonSavedData.get.getPermNodes.map(p => p.getName)
-            case _ => Array("")
+          ProtonSavedData.get.getGroup(args(1)) match {
+            case Some(g) => args(2) match {
+              case "inherit" => ProtonSavedData.get.getGroups.filter(t => !t.equals(g) && !t.getChildren.contains(g.getName)).map(t => t.getName)
+              case "padd" => ProtonSavedData.get.getPermNodes.toBuffer.--=(g.getPerms).map(p => p.getName).toArray
+              case "pdel" => g.getPerms.map(p => p.getName)
+              case "dissociate" => ProtonSavedData.get.getGroups.filter(t => t.getChildren.contains(g.getName)).map(t => t.getName)
+              case _ => Array("")
+            }
+            case None => Array("")
           }
         case "player" =>
-          args(2) match {
-            case _@("gadd" | "gdel") => ProtonSavedData.get.getGroups.map(g => g.getName).filter(s => !s.equals(args(1)))
-            case _@("padd" | "pdel") => ProtonSavedData.get.getPermNodes.map(p => p.getName)
-            case _ => Array("")
+          PlayerUtils.getPlayer(sender, args(1)) match {
+            case Some(p) => args(2) match {
+              case "gadd" => ProtonSavedData.get.getGroups.toBuffer.--=(p.getGroups).map(g => g.getName).toArray
+              case "gdel" => p.getGroups.map(g => g.getName)
+              case "padd" => ProtonSavedData.get.getPermNodes.toBuffer.--=(p.getPerms).map(p => p.getName).toArray
+              case "pdel" => p.getPerms.map(p => p.getName)
+              case "dissociate" => p.getGroups.map(g => g.getName)
+              case _ => Array("")
+            }
+            case None => Array("")
           }
+        case _ => Array("")
       }): _*)
       case _ => ImmutableList.of()
     }

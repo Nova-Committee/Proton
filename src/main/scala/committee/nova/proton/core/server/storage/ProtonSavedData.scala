@@ -23,7 +23,7 @@ object ProtonSavedData {
       return instance
     }
     instance = new ProtonSavedData
-    world.mapStorage.setData("ProtonData", instance)
+    world.mapStorage.setData("ProtonData", new ProtonSavedData)
     instance
   }
 }
@@ -33,10 +33,9 @@ class ProtonSavedData extends WorldSavedData("Proton") {
   private val permNodes = new mutable.HashSet[IPermNode]()
   private var changingUUID = UUID.randomUUID()
 
-  groups.clear()
-  permNodes.clear()
   permNodes.++=(ProtonPermNodeInitializationEvent.getPermNodes)
   groups.++=(ProtonImmutableGroupInitializationEvent.getImmutableGroups)
+  markDirty()
 
   def getGroups: Array[IGroup] = groups.toArray
 
@@ -73,7 +72,11 @@ class ProtonSavedData extends WorldSavedData("Proton") {
 
   def getGroup(name: String): Option[IGroup] = groups.find(g => name.equals(g.getName))
 
-  def addPermNode(node: IPermNode): Boolean = permNodes.add(node)
+  def addPermNode(node: IPermNode): Boolean = {
+    val added = permNodes.add(node)
+    if (added) markDirty()
+    added
+  }
 
   def getChangingUUID: UUID = changingUUID
 
@@ -81,10 +84,11 @@ class ProtonSavedData extends WorldSavedData("Proton") {
     if (tag.hasKey("protonGroups")) {
       val groupsTag = tag.getTagList("protonGroups", 10)
       for (i <- 0 until groupsTag.tagCount()) {
-        val group = groupsTag.getCompoundTagAt(i)
-        val groupName = group.getString("name")
-        if (!group.getBoolean("immutable") || ProtonImmutableGroupInitializationEvent.getImmutableGroups.exists(g => groupName.equals(g.getName)))
-          groups.add(Group(groupName).deserialize(group))
+        val groupInfo = groupsTag.getCompoundTagAt(i)
+        val groupName = groupInfo.getString("name")
+        val group = Group(groupName).deserialize(groupInfo)
+        if (!group.isImmutable || ProtonImmutableGroupInitializationEvent.getImmutableGroups.exists(g => group.equals(g)))
+          groups.add(group)
       }
     }
     if (tag.hasKey("protonNodes")) {
@@ -100,7 +104,9 @@ class ProtonSavedData extends WorldSavedData("Proton") {
       for (group <- groups) {
         val serialized = group.serialize
         serialized.setString("name", group.getName)
-        if (!group.isImmutable || ProtonImmutableGroupInitializationEvent.getImmutableGroups.contains(group)) groupsTag.appendTag(serialized)
+        // pass
+        if (!group.isImmutable || ProtonImmutableGroupInitializationEvent.getImmutableGroups.contains(group))
+          groupsTag.appendTag(serialized)
       }
       tag.setTag("protonGroups", groupsTag)
     }

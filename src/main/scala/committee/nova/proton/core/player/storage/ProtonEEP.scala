@@ -107,4 +107,9 @@ class ProtonEEP extends IExtendedEntityProperties {
   def addToGroup(group: IGroup): Boolean = groups.add(group)
 
   def removeFromGroup(group: IGroup): Boolean = groups.remove(group)
+
+  def dissociate(group: IGroup): Boolean = {
+    permNodes.++=(group.getPerms)
+    removeFromGroup(group)
+  }
 }
