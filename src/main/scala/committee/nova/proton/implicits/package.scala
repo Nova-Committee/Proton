@@ -16,9 +16,9 @@ package object implicits {
 
     def getPerms: Array[IPermNode] = getProton.getPerms
 
-    def hasPerm(node: IPermNode): Boolean = getProton.hasPermission(node)
+    def hasPerm(node: IPermNode): Boolean = getProton.hasPerm(node)
 
-    def hasPerm(node: String): Boolean = getProton.hasPermission(node)
+    def hasPerm(node: String): Boolean = getProton.hasPerm(node)
 
     def addPerm(node: IPermNode): Boolean = ProtonSavedData.get.getPermNodes.contains(node) && getProton.addPerm(node)
 

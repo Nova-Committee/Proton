@@ -12,8 +12,6 @@ import java.util.UUID
 import scala.collection.mutable
 
 object ProtonSavedData {
-  private var instance: ProtonSavedData = _
-
   def get: ProtonSavedData = {
     val world = DataUtils.getOverworld
     var data = world.mapStorage.loadData(classOf[ProtonSavedData], "ProtonData")

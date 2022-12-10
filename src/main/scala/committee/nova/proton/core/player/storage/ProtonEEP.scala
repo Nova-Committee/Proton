@@ -74,13 +74,13 @@ class ProtonEEP extends IExtendedEntityProperties {
 
   def setInitialized(initialized: Boolean): Unit = this.initialized = initialized
 
-  def hasPermission(node: IPermNode): Boolean = {
+  def hasPerm(node: IPermNode): Boolean = {
     if (permNodes.contains(node)) return true
     for (group <- getGroups) if (group.hasPerm(node)) return true
     false
   }
 
-  def hasPermission(node: String): Boolean = {
+  def hasPerm(node: String): Boolean = {
     if (permNodes.exists(p => node.equals(p.getName))) return true
     for (group <- getGroups) if (group.hasPerm(node)) return true
     false

@@ -2,13 +2,14 @@ package committee.nova.proton.core.command.impl
 
 import com.google.common.collect.ImmutableList
 import committee.nova.proton.api.perm.{IGroup, IPermNode}
+import committee.nova.proton.config.ServerConfig
 import committee.nova.proton.core.l10n.ChatComponentServerTranslation
 import committee.nova.proton.core.server.storage.ProtonSavedData
 import committee.nova.proton.implicits.PlayerImplicit
 import committee.nova.proton.util.{L10nUtils, PlayerUtils, StringUtils}
 import net.minecraft.command.{CommandBase, ICommandSender}
 import net.minecraft.server.MinecraftServer
-import net.minecraft.util.ChatComponentText
+import net.minecraft.util.{ChatComponentText, ChatStyle, EnumChatFormatting}
 
 import java.util
 
@@ -31,29 +32,48 @@ class CommandProton extends CommandBase {
             L10nUtils.getFromCurrentLang("msg.proton.group.none"))))
           case "listperms" => sender.addChatMessage(new ChatComponentText(StringUtils.convertIteratorToString(ProtonSavedData.get.getPermNodes.toIterator, (p: IPermNode, _) => p.getName,
             L10nUtils.getFromCurrentLang("msg.proton.perm.none"))))
-          case "help" => {
+          case "help" =>
             Array(
-              "listgroups", "listperms", "group create [Group]", "group remove [Group]",
+              "reload", "listgroups", "listperms", "group create [Group]", "group remove [Group]",
               "group [Group] listperms", "group [GroupA] inherit [GroupB]", "group [GroupA] dissociate [GroupB]", "group [GroupA] create [GroupB]",
               "group [Group] padd [Perm]", "group [Group] pdel [Perm]",
               "player [PlayerName] listgroups", "player [PlayerName] listperms", "player [PlayerName] padd [Perm]", "player [PlayerName] pdel [Perm]",
               "player [PlayerName] gadd [Group]", "player [PlayerName] gdel [Group]", "player [PlayerName] dissociate [Group]"
             ).map(t => new ChatComponentText(s"/proton $t")).foreach(t => sender.addChatMessage(t))
-          }
-          case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender)))
+          case "reload" =>
+            sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.reload.inProgress")
+              .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)))
+            try {
+              ServerConfig.sync()
+            } catch {
+              case e: Exception =>
+                e.printStackTrace()
+                sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.reload.error")
+                  .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.DARK_RED)))
+                return
+            }
+            sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.reload.success")
+              .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.GREEN)))
+          case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender))
+            .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)))
         }
       case 3 =>
         args(0) match {
           case "group" =>
             args(1) match {
               case "create" =>
-                sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.create.${if (ProtonSavedData.get.createGroup(args(2))) "success" else "failure"}", args(2)))
+                val success = ProtonSavedData.get.createGroup(args(2))
+                sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.create.${if (success) "success" else "failure"}", args(2))
+                  .setChatStyle(new ChatStyle().setColor(if (success) EnumChatFormatting.GREEN else EnumChatFormatting.RED)))
               case "remove" =>
                 if (ProtonSavedData.get.getGroups.exists(g => g.isImmutable && args(2).equals(g.getName))) {
-                  sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.immutable", args(2)))
+                  sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.immutable", args(2))
+                    .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)))
                   return
                 }
-                sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.remove.${if (ProtonSavedData.get.removeGroup(args(2))) "success" else "failure"}", args(2)))
+                val success = ProtonSavedData.get.removeGroup(args(2))
+                sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.remove.${if (success) "success" else "failure"}", args(2))
+                  .setChatStyle(new ChatStyle().setColor(if (success) EnumChatFormatting.GREEN else EnumChatFormatting.RED)))
               case y if ProtonSavedData.get.getGroup(y).isDefined =>
                 args(2) match {
                   case "listperms" => ProtonSavedData.get.getGroup(y).foreach(g => {
@@ -61,9 +81,11 @@ class CommandProton extends CommandBase {
                     sender.addChatMessage(new ChatComponentText(StringUtils.convertIteratorToString(g.getPerms.toIterator, (p: IPermNode, _) => p.getName,
                       L10nUtils.getFromCurrentLang("msg.proton.perm.none"))))
                   })
-                  case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender)))
+                  case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender))
+                    .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)))
                 }
-              case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender)))
+              case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender))
+                .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)))
             }
           case "player" =>
             PlayerUtils.getPlayer(sender, args(1)).foreach(player => {
@@ -80,12 +102,15 @@ class CommandProton extends CommandBase {
                   sender.addChatMessage(new ChatComponentText(StringUtils.convertIteratorToString(raw.toIterator, (p: IPermNode, _) => p.getName,
                     L10nUtils.getFromCurrentLang("msg.proton.perm.none"))))
                   return
-                case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender)))
+                case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender))
+                  .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)))
                   return
               }
             })
-            sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.player.notFound", args(1)))
-          case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender)))
+            sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.player.notFound", args(1))
+              .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.RED)))
+          case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender))
+            .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)))
         }
       case 4 =>
         args(0) match {
@@ -94,28 +119,34 @@ class CommandProton extends CommandBase {
               args(2) match {
                 case "inherit" =>
                   if (args(1).equals(args(3))) {
-                    sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.inherit.self"))
+                    sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.inherit.self")
+                      .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.RED)))
                     return
                   }
                   ProtonSavedData.get.getGroup(args(3)).foreach(target => {
                     group.inherit(target)
-                    sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.inherited", group.getName, target.getName))
+                    sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.inherited", group.getName, target.getName)
+                      .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.GREEN)))
                     return
                   })
-                  sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.notFound", args(3)))
+                  sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.notFound", args(3))
+                    .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.RED)))
                   return
-                case "dissociate" => {
+                case "dissociate" =>
                   if (args(1).equals(args(3))) {
-                    sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.dissociate.self"))
+                    sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.dissociate.self")
+                      .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.RED)))
                     return
                   }
                   ProtonSavedData.get.getGroup(args(3)).foreach(target => {
-                    sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.dissociate.${if (group.dissociate(target)) "success" else "failure"}", target.getName, group.getName))
+                    val success = group.dissociate(target)
+                    sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.dissociate.${if (success) "success" else "failure"}", target.getName, group.getName)
+                      .setChatStyle(new ChatStyle().setColor(if (success) EnumChatFormatting.GREEN else EnumChatFormatting.RED)))
                     return
                   })
-                  sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.notFound", args(3)))
+                  sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.notFound", args(3))
+                    .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.RED)))
                   return
-                }
                 case "create" =>
                   val manager = MinecraftServer.getServer.getCommandManager
                   if (manager.executeCommand(sender, s"/proton group create ${args(3)}") > 0)
@@ -123,62 +154,77 @@ class CommandProton extends CommandBase {
                   return
                 case "padd" =>
                   if (group.isImmutable) {
-                    sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.immutable", group.getName))
+                    sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.immutable", group.getName)
+                      .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)))
                     return
                   }
                   val added = group.addPerm(args(3))
-                  sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.addPerm.${if (added) "success" else "failure"}", args(3), group.getName))
+                  sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.addPerm.${if (added) "success" else "failure"}", args(3), group.getName)
+                    .setChatStyle(new ChatStyle().setColor(if (added) EnumChatFormatting.GREEN else EnumChatFormatting.RED)))
                   return
                 case "pdel" =>
                   if (group.isImmutable) {
-                    sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.immutable", group.getName))
+                    sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.immutable", group.getName)
+                      .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)))
                     return
                   }
                   val removed = group.removePerm(args(3))
-                  sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.delPerm.${if (removed) "success" else "failure"}", args(3), group.getName))
+                  sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.delPerm.${if (removed) "success" else "failure"}", args(3), group.getName)
+                    .setChatStyle(new ChatStyle().setColor(if (removed) EnumChatFormatting.GREEN else EnumChatFormatting.RED)))
                   return
-                case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender)))
+                case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender))
+                  .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)))
                   return
               }
             })
-            sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.notFound", args(1)))
+            sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.group.notFound", args(1))
+              .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.RED)))
           case "player" =>
             PlayerUtils.getPlayer(sender, args(1)).foreach(player => {
               args(2) match {
                 case "padd" =>
                   val added = player.addPerm(args(3))
-                  sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.player.addPerm.${if (added) "success" else "failure"}", args(3), player.getCommandSenderName))
+                  sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.player.addPerm.${if (added) "success" else "failure"}", args(3), player.getCommandSenderName)
+                    .setChatStyle(new ChatStyle().setColor(if (added) EnumChatFormatting.GREEN else EnumChatFormatting.RED)))
                   return
                 case "pdel" =>
                   val removed = player.removePerm(args(3))
-                  sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.player.delPerm.${if (removed) "success" else "failure"}", args(3), player.getCommandSenderName))
+                  sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.player.delPerm.${if (removed) "success" else "failure"}", args(3), player.getCommandSenderName)
+                    .setChatStyle(new ChatStyle().setColor(if (removed) EnumChatFormatting.GREEN else EnumChatFormatting.RED)))
                   return
                 case "gadd" =>
                   val added = player.addToGroup(args(3))
-                  sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.player.addToGroup.${if (added) "success" else "failure"}", args(3), player.getCommandSenderName))
+                  sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.player.addToGroup.${if (added) "success" else "failure"}", args(3), player.getCommandSenderName)
+                    .setChatStyle(new ChatStyle().setColor(if (added) EnumChatFormatting.GREEN else EnumChatFormatting.RED)))
                   return
                 case "gdel" =>
                   val removed = player.removeFromGroup(args(3))
-                  sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.player.removeFromGroup.${if (removed) "success" else "failure"}", args(3), player.getCommandSenderName))
+                  sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.player.removeFromGroup.${if (removed) "success" else "failure"}", args(3), player.getCommandSenderName)
+                    .setChatStyle(new ChatStyle().setColor(if (removed) EnumChatFormatting.GREEN else EnumChatFormatting.RED)))
                   return
                 case "dissociate" =>
                   val dissociated = player.dissociate(args(3))
-                  sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.player.dissociate.${if (dissociated) "success" else "failure"}", args(3), player.getCommandSenderName))
+                  sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.player.dissociate.${if (dissociated) "success" else "failure"}", args(3), player.getCommandSenderName)
+                    .setChatStyle(new ChatStyle().setColor(if (dissociated) EnumChatFormatting.GREEN else EnumChatFormatting.RED)))
                   return
-                case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender)))
+                case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender))
+                  .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)))
                   return
               }
             })
-            sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.player.notFound", args(1)))
-          case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender)))
+            sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.player.notFound", args(1))
+              .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.RED)))
+          case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender))
+            .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)))
         }
-      case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender)))
+      case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender))
+        .setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)))
     }
   }
 
   override def addTabCompletionOptions(sender: ICommandSender, args: Array[String]): util.List[_] = {
     args.length match {
-      case 1 => CommandBase.getListOfStringsMatchingLastWord(args, Array("group", "player", "listgroups", "listperms", "help"): _*)
+      case 1 => CommandBase.getListOfStringsMatchingLastWord(args, Array("group", "player", "listgroups", "listperms", "help", "reload"): _*)
       case 2 => CommandBase.getListOfStringsMatchingLastWord(args, (args(0) match {
         case "group" => "create" :: ProtonSavedData.get.getGroups.map(g => g.getName).toList
         case "player" => MinecraftServer.getServer.getAllUsernames.toList

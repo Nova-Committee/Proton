@@ -16,11 +16,10 @@ class FMLEventHandler {
   def onLogin(e: PlayerLoggedInEvent): Unit = {
     val player = e.player
     player match {
-      case mp: EntityPlayerMP => {
+      case mp: EntityPlayerMP =>
         if (mp.wasInitialized) return
         ProtonPlayerInitializationEvent.getAllFuncs.foreach(f => f.apply(mp))
         mp.setInitialized(true)
-      }
     }
   }
 }
