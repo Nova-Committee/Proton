@@ -21,10 +21,7 @@ object CommandProton {
 class CommandProton extends CommandBase {
   override def getCommandName: String = "proton"
 
-  override def getCommandUsage(sender: ICommandSender): String = {
-    // TODO:
-    ""
-  }
+  override def getCommandUsage(sender: ICommandSender): String = "msg.proton.cmd.help"
 
   override def processCommand(sender: ICommandSender, args: Array[String]): Unit = {
     args.length match {
@@ -34,7 +31,16 @@ class CommandProton extends CommandBase {
             L10nUtils.getFromCurrentLang("msg.proton.group.none"))))
           case "listperms" => sender.addChatMessage(new ChatComponentText(StringUtils.convertIteratorToString(ProtonSavedData.get.getPermNodes.toIterator, (p: IPermNode, _) => p.getName,
             L10nUtils.getFromCurrentLang("msg.proton.perm.none"))))
-          case _ => sender.addChatMessage(new ChatComponentText(getCommandUsage(sender)))
+          case "help" => {
+            Array(
+              "listgroups", "listperms", "group create [Group]", "group remove [Group]",
+              "group [Group] listperms", "group [GroupA] inherit [GroupB]", "group [GroupA] dissociate [GroupB]", "group [GroupA] create [GroupB]",
+              "group [Group] padd [Perm]", "group [Group] pdel [Perm]",
+              "player [PlayerName] listgroups", "player [PlayerName] listperms", "player [PlayerName] padd [Perm]", "player [PlayerName] pdel [Perm]",
+              "player [PlayerName] gadd [Group]", "player [PlayerName] gdel [Group]", "player [PlayerName] dissociate [Group]"
+            ).map(t => new ChatComponentText(s"/proton $t")).foreach(t => sender.addChatMessage(t))
+          }
+          case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender)))
         }
       case 3 =>
         args(0) match {
@@ -55,9 +61,9 @@ class CommandProton extends CommandBase {
                     sender.addChatMessage(new ChatComponentText(StringUtils.convertIteratorToString(g.getPerms.toIterator, (p: IPermNode, _) => p.getName,
                       L10nUtils.getFromCurrentLang("msg.proton.perm.none"))))
                   })
-                  case _ => sender.addChatMessage(new ChatComponentText(getCommandUsage(sender)))
+                  case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender)))
                 }
-              case _ => sender.addChatMessage(new ChatComponentText(getCommandUsage(sender)))
+              case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender)))
             }
           case "player" =>
             PlayerUtils.getPlayer(sender, args(1)).foreach(player => {
@@ -74,12 +80,12 @@ class CommandProton extends CommandBase {
                   sender.addChatMessage(new ChatComponentText(StringUtils.convertIteratorToString(raw.toIterator, (p: IPermNode, _) => p.getName,
                     L10nUtils.getFromCurrentLang("msg.proton.perm.none"))))
                   return
-                case _ => sender.addChatMessage(new ChatComponentText(getCommandUsage(sender)))
+                case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender)))
                   return
               }
             })
             sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.player.notFound", args(1)))
-          case _ => sender.addChatMessage(new ChatComponentText(getCommandUsage(sender)))
+          case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender)))
         }
       case 4 =>
         args(0) match {
@@ -131,7 +137,7 @@ class CommandProton extends CommandBase {
                   val removed = group.removePerm(args(3))
                   sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.group.delPerm.${if (removed) "success" else "failure"}", args(3), group.getName))
                   return
-                case _ => sender.addChatMessage(new ChatComponentText(getCommandUsage(sender)))
+                case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender)))
                   return
               }
             })
@@ -159,20 +165,20 @@ class CommandProton extends CommandBase {
                   val dissociated = player.dissociate(args(3))
                   sender.addChatMessage(new ChatComponentServerTranslation(s"msg.proton.player.dissociate.${if (dissociated) "success" else "failure"}", args(3), player.getCommandSenderName))
                   return
-                case _ => sender.addChatMessage(new ChatComponentText(getCommandUsage(sender)))
+                case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender)))
                   return
               }
             })
             sender.addChatMessage(new ChatComponentServerTranslation("msg.proton.player.notFound", args(1)))
-          case _ => sender.addChatMessage(new ChatComponentText(getCommandUsage(sender)))
+          case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender)))
         }
-      case _ => sender.addChatMessage(new ChatComponentText(getCommandUsage(sender)))
+      case _ => sender.addChatMessage(new ChatComponentServerTranslation(getCommandUsage(sender)))
     }
   }
 
   override def addTabCompletionOptions(sender: ICommandSender, args: Array[String]): util.List[_] = {
     args.length match {
-      case 1 => CommandBase.getListOfStringsMatchingLastWord(args, Array("group", "player", "listgroups", "listperms"): _*)
+      case 1 => CommandBase.getListOfStringsMatchingLastWord(args, Array("group", "player", "listgroups", "listperms", "help"): _*)
       case 2 => CommandBase.getListOfStringsMatchingLastWord(args, (args(0) match {
         case "group" => "create" :: ProtonSavedData.get.getGroups.map(g => g.getName).toList
         case "player" => MinecraftServer.getServer.getAllUsernames.toList

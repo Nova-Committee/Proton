@@ -70,7 +70,7 @@ trait IGroup {
     val permList = tag.getTagList("perms", 8)
     for (i <- 0 until permList.tagCount()) {
       val perm = PermNode(permList.getStringTagAt(i))
-      if (!perm.getName.endsWith("*")) ProtonSavedData.get.addPermNode(perm)
+      if (!perm.getName.endsWith("*")) ProtonSavedData.permNodeCache.add(perm)
       addPerm(perm)
     }
     val childrenList = tag.getTagList("children", 8)

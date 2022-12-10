@@ -1,4 +1,5 @@
 {
+  "msg.proton.cmd.help": "Execute \"/proton help\" to figure out the correct usage of the proton commands.",
   "msg.proton.err.eepInit": "You should never use the mod on the client side if you want to play on a server.",
   "msg.proton.group.none": "No group found.",
   "msg.proton.perm.none": "No perm found.",

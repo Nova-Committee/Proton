@@ -16,26 +16,24 @@ object ProtonSavedData {
 
   def get: ProtonSavedData = {
     val world = DataUtils.getOverworld
-    if (instance != null) return instance
-    val data = world.mapStorage.loadData(classOf[ProtonSavedData], "ProtonData")
-    if (data != null) {
-      instance = data.asInstanceOf[ProtonSavedData]
-      return instance
-    }
-    instance = new ProtonSavedData
-    world.mapStorage.setData("ProtonData", new ProtonSavedData)
-    instance
+    var data = world.mapStorage.loadData(classOf[ProtonSavedData], "ProtonData")
+    if (data != null) return data.asInstanceOf[ProtonSavedData]
+    data = new ProtonSavedData("ProtonData")
+    world.mapStorage.setData("ProtonData", data)
+    data.asInstanceOf[ProtonSavedData]
   }
+
+  val permNodeCache: mutable.HashSet[IPermNode] = new mutable.HashSet[IPermNode]()
 }
 
-class ProtonSavedData extends WorldSavedData("Proton") {
+class ProtonSavedData(name: String) extends WorldSavedData(name) {
   private val groups = new mutable.HashSet[IGroup]()
   private val permNodes = new mutable.HashSet[IPermNode]()
   private var changingUUID = UUID.randomUUID()
 
   permNodes.++=(ProtonPermNodeInitializationEvent.getPermNodes)
   groups.++=(ProtonImmutableGroupInitializationEvent.getImmutableGroups)
-  markDirty()
+  //markDirty()
 
   def getGroups: Array[IGroup] = groups.toArray
 
@@ -87,15 +85,15 @@ class ProtonSavedData extends WorldSavedData("Proton") {
         val groupInfo = groupsTag.getCompoundTagAt(i)
         val groupName = groupInfo.getString("name")
         val group = Group(groupName).deserialize(groupInfo)
-        if (!group.isImmutable || ProtonImmutableGroupInitializationEvent.getImmutableGroups.exists(g => group.equals(g)))
-          groups.add(group)
+        groups.add(group)
       }
+      //markDirty()
     }
     if (tag.hasKey("protonNodes")) {
       val nodesTag = tag.getTagList("protonNodes", 8)
       for (i <- 0 until nodesTag.tagCount()) permNodes.add(PermNode(nodesTag.getStringTagAt(i)))
+      //markDirty()
     }
-    markDirty()
   }
 
   override def writeToNBT(tag: NBTTagCompound): Unit = {
@@ -104,8 +102,9 @@ class ProtonSavedData extends WorldSavedData("Proton") {
       for (group <- groups) {
         val serialized = group.serialize
         serialized.setString("name", group.getName)
-        if (!group.isImmutable || ProtonImmutableGroupInitializationEvent.getImmutableGroups.contains(group))
-          groupsTag.appendTag(serialized)
+        //if (!group.isImmutable || ProtonImmutableGroupInitializationEvent.getImmutableGroups.contains(group))
+        // Weirdly this won't work...
+        groupsTag.appendTag(serialized)
       }
       tag.setTag("protonGroups", groupsTag)
     }

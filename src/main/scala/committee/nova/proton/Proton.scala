@@ -4,10 +4,11 @@ import committee.nova.proton.config.ServerConfig
 import committee.nova.proton.core.command.init.CommandInit
 import committee.nova.proton.core.event.handler.{FMLEventHandler, ForgeEventHandler}
 import committee.nova.proton.core.event.impl.{ProtonImmutableGroupInitializationEvent, ProtonPermNodeInitializationEvent, ProtonPlayerInitializationEvent}
+import committee.nova.proton.core.server.storage.ProtonSavedData
 import committee.nova.proton.util.L10nUtils
 import cpw.mods.fml.common.Mod
 import cpw.mods.fml.common.Mod.EventHandler
-import cpw.mods.fml.common.event.{FMLInitializationEvent, FMLPostInitializationEvent, FMLPreInitializationEvent, FMLServerStartingEvent}
+import cpw.mods.fml.common.event._
 import cpw.mods.fml.relauncher.Side
 import net.minecraftforge.common.MinecraftForge
 import org.apache.logging.log4j.Logger
@@ -48,5 +49,9 @@ object Proton {
 
   @EventHandler def serverStarting(e: FMLServerStartingEvent): Unit = {
     CommandInit.init(e)
+  }
+
+  @EventHandler def serverStarted(e: FMLServerStartedEvent): Unit = {
+    ProtonSavedData.permNodeCache.foreach(p => ProtonSavedData.get.addPermNode(p))
   }
 }
