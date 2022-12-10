@@ -47,11 +47,7 @@ object Proton {
     MinecraftForge.EVENT_BUS.post(new ProtonPlayerInitializationEvent)
   }
 
-  @EventHandler def serverStarting(e: FMLServerStartingEvent): Unit = {
-    CommandInit.init(e)
-  }
+  @EventHandler def serverStarting(e: FMLServerStartingEvent): Unit = CommandInit.init(e)
 
-  @EventHandler def serverStarted(e: FMLServerStartedEvent): Unit = {
-    ProtonSavedData.permNodeCache.foreach(p => ProtonSavedData.get.addPermNode(p))
-  }
+  @EventHandler def serverStarted(e: FMLServerStartedEvent): Unit = ProtonSavedData.processCache()
 }

@@ -21,7 +21,14 @@ object ProtonSavedData {
     data.asInstanceOf[ProtonSavedData]
   }
 
-  val permNodeCache: mutable.HashSet[IPermNode] = new mutable.HashSet[IPermNode]()
+  private val permNodeCache: mutable.HashSet[IPermNode] = new mutable.HashSet[IPermNode]()
+
+  def appendIntoCache(perm: IPermNode): Unit = permNodeCache.add(perm)
+
+  def processCache(): Unit = {
+    permNodeCache.foreach(p => get.addPermNode(p))
+    permNodeCache.clear()
+  }
 }
 
 class ProtonSavedData(name: String) extends WorldSavedData(name) {
@@ -31,7 +38,6 @@ class ProtonSavedData(name: String) extends WorldSavedData(name) {
 
   permNodes.++=(ProtonPermNodeInitializationEvent.getPermNodes)
   groups.++=(ProtonImmutableGroupInitializationEvent.getImmutableGroups)
-  //markDirty()
 
   def getGroups: Array[IGroup] = groups.toArray
 
@@ -85,13 +91,12 @@ class ProtonSavedData(name: String) extends WorldSavedData(name) {
         val group = Group(groupName).deserialize(groupInfo)
         groups.add(group)
       }
-      //markDirty()
     }
     if (tag.hasKey("protonNodes")) {
       val nodesTag = tag.getTagList("protonNodes", 8)
       for (i <- 0 until nodesTag.tagCount()) permNodes.add(PermNode(nodesTag.getStringTagAt(i)))
-      //markDirty()
     }
+    markDirty()
   }
 
   override def writeToNBT(tag: NBTTagCompound): Unit = {
@@ -100,8 +105,6 @@ class ProtonSavedData(name: String) extends WorldSavedData(name) {
       for (group <- groups) {
         val serialized = group.serialize
         serialized.setString("name", group.getName)
-        //if (!group.isImmutable || ProtonImmutableGroupInitializationEvent.getImmutableGroups.contains(group))
-        // Weirdly this won't work...
         groupsTag.appendTag(serialized)
       }
       tag.setTag("protonGroups", groupsTag)
