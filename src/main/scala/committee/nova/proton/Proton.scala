@@ -13,7 +13,7 @@ import cpw.mods.fml.relauncher.Side
 import net.minecraftforge.common.MinecraftForge
 import org.apache.logging.log4j.Logger
 
-@Mod(modid = Proton.MODID, useMetadata = true, modLanguage = "scala")
+@Mod(modid = Proton.MODID, useMetadata = true, modLanguage = "scala", acceptableRemoteVersions = "*")
 object Proton {
   var LOGGER: Logger = _
   final val MODID = "proton"
