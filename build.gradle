@@ -12,7 +12,7 @@ compileScala {
 }
 
 java {
-    archivesBaseName = 'proton'
+    archivesBaseName = 'Proton-Forge-1.12.2'
     //toolchain.languageVersion = JavaLanguageVersion.of(8)
 }
 
